@@ -261,7 +261,7 @@ namespace certsign
                     {
                         // Add AuthorityInformationAccess CertificateExtension
                         string ocspRespUri = "https://pki.lmu.co.id/ocsp";
-                        string issuerCertUri = String.Format("https://lmu-pki.s3.amazonaws.com/certs/{0}.crt", issuerSkiHex);
+                        string issuerCertUri = String.Format("https://lmu-pki.s3.amazonaws.com/certs/{0}.crt", issuerSkiHex.ToLowerInvariant());
                         BcGeneralName ocspRespLocation = new BcGeneralName(BcGeneralName.UniformResourceIdentifier, ocspRespUri);
                         BcGeneralName issuerCertLocation = new BcGeneralName(BcGeneralName.UniformResourceIdentifier, issuerCertUri);
                         var authorityAccessDesc = new BcAccessDescription[] {
@@ -290,7 +290,14 @@ namespace certsign
             Console.WriteLine();
 
             Console.WriteLine("Saving the Certificate belonging to '{0}'...", certificate.GetNameInfo(X509NameType.SimpleName, false));
-            string outFilePath = String.Format(".{0}certs{0}{1}.crt", Path.DirectorySeparatorChar, certificate.Thumbprint);
+            string certificateId = certificate.Thumbprint;
+            foreach (X509SubjectKeyIdentifierExtension x509Ski in certificate.Extensions.OfType<X509SubjectKeyIdentifierExtension>())
+            {
+                // SubjectKeyIdentifier is more useful for chain-lookup than certificate.Thumbprint
+                certificateId = x509Ski.SubjectKeyIdentifier;
+                break;
+            }
+            string outFilePath = String.Format(".{0}certs{0}{1}.crt", Path.DirectorySeparatorChar, certificateId.ToLowerInvariant());
             File.WriteAllText(outFilePath, certificate.ExportToPem());
             Console.WriteLine("Stored the Certificate under {0}{1}", Path.GetFullPath(outFilePath), Environment.NewLine);
 
